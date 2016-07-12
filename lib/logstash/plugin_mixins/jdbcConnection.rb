@@ -76,7 +76,7 @@ class LogStash::PluginMixins::JdbcConnection
       @jdbc_validation_timeout = connectionConfig['jdbc_validation_timeout']
     end
 
-    if validate == false
+    if !validate
       raise 'Error'
     end
 

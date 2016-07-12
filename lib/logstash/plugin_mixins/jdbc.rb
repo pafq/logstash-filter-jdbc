@@ -72,7 +72,8 @@ module LogStash::PluginMixins::Jdbc
     rescue Sequel::DatabaseConnectionError, Sequel::DatabaseError => e
       @logger.warn("Exception when executing JDBC query", :exception => e)
     end
-    return success
+
+    success
   end
 
   # Symbolize parameters keys to use with Sequel

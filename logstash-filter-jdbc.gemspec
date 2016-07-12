@@ -10,7 +10,8 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # Files
-  s.files = `git ls-files`.split($\)
+  #s.files = `git ls-files`.split($\)
+  s.files = ["CHANGELOG.md", "Gemfile", "LICENSE", "NOTICE.TXT", "README.md", "Rakefile", "lib/logstash/filters/jdbc.rb", "lib/logstash/filters/statement.rb", "lib/logstash/plugin_mixins/jdbc.rb", "lib/logstash/plugin_mixins/jdbcConnection.rb", "logstash-filter-jdbc.gemspec", "spec/filters/jdbc_spec.rb"]
    # Tests
   s.test_files = s.files.grep(%r{^(test|spec|features)/})
 

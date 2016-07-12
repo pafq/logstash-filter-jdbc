@@ -35,8 +35,15 @@ class LogStash::Filters::Statement
     end
 
     if !stmt['statement'].nil?
-      @statement = LogStash::Inputs::Statement.new()
-      @statement.populate(stmt['statement'])
+
+      @statement = [] if @statement.nil?
+
+      stmt['statement'].each do |stmt|
+        new_stmt = LogStash::Filters::Statement.new
+        new_stmt.populate(stmt)
+        @statement.push(new_stmt)
+      end
+
     end
 
   end
@@ -45,13 +52,12 @@ class LogStash::Filters::Statement
 
     unless @query.nil? ^ @query_filepath.nil?
       raise(LogStash::ConfigurationError, "Must set either :query or :query_filepath. Only one may be set at a time.")
-      false
     end
 
     true
   end
 
-  def printObject (level=0)
+  def print_object (level=0)
     puts ' '*(4*level) + 'Statement => {'
     puts ' '*(4*level) + "    query                   = #{query}"
     puts ' '*(4*level) + "    query_filepath          = #{query_filepath}"
@@ -64,7 +70,7 @@ class LogStash::Filters::Statement
     puts ' '*(4*level) + "    file                    = #{file}"
     puts ' '*(4*level) + "    elastic_search          = #{elastic_search}"
     puts ' '*(4*level) + "    clear_persistence_store = #{clear_persistence_store}"
-    @statement.printObject(level+1) if !@statement.nil?
+    @statement.print_object(level+1) if !@statement.nil?
     puts ' '*(4*level) + '}'
 
   end

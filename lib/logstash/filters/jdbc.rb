@@ -160,14 +160,16 @@ class LogStash::Filters::Jdbc < LogStash::Filters::Base
   #                   query_filepath => ""
   #                   parameters     => { "favorite_artist" => "Beethoven" }
   #                   node_name      => "Songs"
-  #                   statement      => {
-  #                                       query          => "Select * from songs_albuns where song_id = :song_id"
-  #                                       query_filepath => ""
-  #                                       parameters     => { "favorite_artist" => "Beethoven" }
-  #                                       join_keys      => [ "song_id" ]
-  #                                       node_name      => "Albuns"
-  #                                       statement      => { ... }
-  #                                     }
+  #                   statement      => [
+  #                                       {
+  #                                         query          => "Select * from songs_albuns where song_id = :song_id"
+  #                                         query_filepath => ""
+  #                                         parameters     => { "favorite_artist" => "Beethoven" }
+  #                                         join_keys      => [ "song_id" ]
+  #                                         node_name      => "Albuns"
+  #                                         statement      => { ... }
+  #                                       }
+  #                                     ]
   #                 }
   #               ]
   # ----------------------------------
@@ -188,14 +190,14 @@ class LogStash::Filters::Jdbc < LogStash::Filters::Base
   public
   def register
     # Add instance variables
-    @jdbcConn = LogStash::PluginMixins::JdbcConnection.new()
+    @jdbcConn = LogStash::PluginMixins::JdbcConnection.new
     @jdbcConn.populate(@connection)
 
     @stmts = []
     @statements.each do |stmt|
-      stmtObj = LogStash::Filters::Statement.new()
-      stmtObj.populate(stmt)
-      @stmts.push(stmtObj)
+      stmt_obj = LogStash::Filters::Statement.new
+      stmt_obj.populate(stmt)
+      @stmts.push(stmt_obj)
     end
 
     prepare_jdbc_connection(@jdbcConn)
@@ -212,12 +214,12 @@ class LogStash::Filters::Jdbc < LogStash::Filters::Base
 #    end
 
     @stmts.each do |stmt|
-      joinKeys = {}
+      join_keys = {}
       stmt.join_keys.each do |key|
-        joinKeys[key] = event[key] if !event[key].nil?
+        join_keys[key] = event[key] if !event[key].nil?
       end
 
-      execute_query(stmt, joinKeys).each do |key, value|
+      execute_query(stmt, join_keys).each do |key, value|
         event[key] = value
       end
 
@@ -227,41 +229,44 @@ class LogStash::Filters::Jdbc < LogStash::Filters::Base
     filter_matched(event)
   end # def filter
 
-  def execute_query(stmt, joinKeys)
-    newNodes = {}
+  def execute_query(stmt, join_keys)
+    new_nodes = {}
     stmt.parameters = {} if stmt.parameters.nil?
 
     #Execute Query With Current Values
-    if !joinKeys.nil?
-      queryParameters = stmt.parameters.merge(joinKeys)
+    if !join_keys.nil?
+      query_parameters = stmt.parameters.merge(join_keys)
     else
-      queryParameters = stmt.parameters
+      query_parameters = stmt.parameters
     end
 
-    execute_statement(@jdbcConn, stmt.query, queryParameters) do |row|
+    execute_statement(@jdbcConn, stmt.query, query_parameters) do |row|
 
       #Verify if exists a SubQuery
       if !stmt.statement.nil?
-        newJoinKeys = {}
 
-        if !stmt.statement.join_keys.nil?
-          stmt.statement.join_keys.each do |key|
-            newJoinKeys[key] = row[key] if !row[key].nil?
+        stmt.statement.each do |sub_stmt|
+          new_join_keys = {}
+
+          if !sub_stmt.join_keys.nil?
+            sub_stmt.join_keys.each do |key|
+              new_join_keys[key] = row[key] if !row[key].nil?
+            end
           end
-        end
 
-        execute_query(stmt.statement, newJoinKeys).each do |key, value|
-          row[key] = value
+          execute_query(sub_stmt, new_join_keys).each do |key, value|
+            row[key] = value
+          end
         end
 
       end
 
-      newNodes[stmt.node_name] = [] if newNodes[stmt.node_name].nil?
-      newNodes[stmt.node_name].insert(-1, row)
+      new_nodes[stmt.node_name] = [] if new_nodes[stmt.node_name].nil?
+      new_nodes[stmt.node_name].insert(-1, row)
 
     end
 
-    return newNodes
+    new_nodes
   end
 
 end # class LogStash::Filters::Jdbc
